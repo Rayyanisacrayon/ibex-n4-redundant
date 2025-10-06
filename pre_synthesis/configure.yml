@@ -1,0 +1,6 @@
+name: pre_synthesis
+
+outputs:
+  - designer-interface.tcl
+  - compile.tcl
+  - read-design.tcl

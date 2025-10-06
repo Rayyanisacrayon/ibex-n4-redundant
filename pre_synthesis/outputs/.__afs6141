@@ -1,0 +1,144 @@
+#=========================================================================
+# read-design.tcl
+#=========================================================================
+# Author : Alex Carsello
+# Date   : September 28, 2020
+
+#read_hdl -define $read_hdl_defines -sv [lsort [glob -directory inputs -type f *.svh *.v *.sv]]
+set files {
+    inputs/ibex_pkg.sv
+    inputs/prim_pkg.sv
+    inputs/prim_ram_1p_pkg.sv
+    inputs/prim_cipher_pkg.sv
+    inputs/prim_generic_and2.sv
+    inputs/prim_generic_buf.sv
+    inputs/prim_generic_clock_gating.sv
+    inputs/prim_generic_flop.sv
+    inputs/prim_secded_pkg.sv
+    inputs/prim_secded_22_16_dec.sv
+    inputs/prim_secded_22_16_enc.sv
+    inputs/prim_secded_28_22_dec.sv
+    inputs/prim_secded_28_22_enc.sv
+    inputs/prim_secded_39_32_dec.sv
+    inputs/prim_secded_39_32_enc.sv
+    inputs/prim_secded_64_57_dec.sv
+    inputs/prim_secded_64_57_enc.sv
+    inputs/prim_secded_72_64_dec.sv
+    inputs/prim_secded_72_64_enc.sv
+    inputs/prim_secded_hamming_22_16_dec.sv
+    inputs/prim_secded_hamming_22_16_enc.sv
+    inputs/prim_secded_hamming_39_32_dec.sv
+    inputs/prim_secded_hamming_39_32_enc.sv
+    inputs/prim_secded_hamming_72_64_dec.sv
+    inputs/prim_secded_hamming_72_64_enc.sv
+    inputs/prim_secded_hamming_76_68_dec.sv
+    inputs/prim_secded_hamming_76_68_enc.sv
+    inputs/prim_secded_inv_22_16_dec.sv
+    inputs/prim_secded_inv_22_16_enc.sv
+    inputs/prim_secded_inv_28_22_dec.sv
+    inputs/prim_secded_inv_28_22_enc.sv
+    inputs/prim_secded_inv_39_32_dec.sv
+    inputs/prim_secded_inv_39_32_enc.sv
+    inputs/prim_secded_inv_64_57_dec.sv
+    inputs/prim_secded_inv_64_57_enc.sv
+    inputs/prim_secded_inv_72_64_dec.sv
+    inputs/prim_secded_inv_72_64_enc.sv
+    inputs/prim_secded_inv_hamming_22_16_dec.sv
+    inputs/prim_secded_inv_hamming_22_16_enc.sv
+    inputs/prim_secded_inv_hamming_39_32_dec.sv
+    inputs/prim_secded_inv_hamming_39_32_enc.sv
+    inputs/prim_secded_inv_hamming_72_64_dec.sv
+    inputs/prim_secded_inv_hamming_72_64_enc.sv
+    inputs/prim_secded_inv_hamming_76_68_dec.sv
+    inputs/prim_secded_inv_hamming_76_68_enc.sv
+    inputs/prim_xilinx_and2.sv
+    inputs/prim_xilinx_buf.sv
+    inputs/prim_xilinx_clock_gating.sv
+    inputs/prim_xilinx_clock_mux2.sv
+    inputs/prim_xilinx_flop.sv
+    inputs/ibex_icache.sv
+    inputs/prim_and2.sv
+    inputs/prim_buf.sv
+    inputs/prim_clock_gating.sv
+    inputs/prim_flop.sv
+    inputs/prim_subst_perm.sv
+    inputs/prim_present.sv
+    inputs/prim_prince.sv
+    inputs/prim_count_pkg.sv
+    inputs/prim_count.sv
+    inputs/prim_generic_clock_mux2.sv
+    inputs/prim_generic_ram_1p.sv
+    inputs/prim_lfsr.sv
+    inputs/prim_util_pkg.sv
+    inputs/prim_clock_mux2.sv
+    inputs/prim_badbit_ram_1p.sv
+    inputs/prim_onehot_enc.sv
+    inputs/prim_onehot_mux.sv
+    inputs/prim_onehot_check.sv
+    inputs/prim_ram_1p.sv
+    inputs/prim_mubi_pkg.sv
+    inputs/prim_mubi4_sender.sv
+    inputs/prim_mubi4_sync.sv
+    inputs/prim_mubi4_dec.sv
+    inputs/prim_mubi8_sender.sv
+    inputs/prim_mubi8_sync.sv
+    inputs/prim_mubi8_dec.sv
+    inputs/prim_mubi12_sender.sv
+    inputs/prim_mubi12_sync.sv
+    inputs/prim_mubi12_dec.sv
+    inputs/prim_mubi16_sender.sv
+    inputs/prim_mubi16_sync.sv
+    inputs/prim_mubi16_dec.sv
+    inputs/prim_mubi20_sender.sv
+    inputs/prim_mubi20_sync.sv
+    inputs/prim_mubi20_dec.sv
+    inputs/prim_mubi24_sender.sv
+    inputs/prim_mubi24_sync.sv
+    inputs/prim_mubi24_dec.sv
+    inputs/prim_mubi28_sender.sv
+    inputs/prim_mubi28_sync.sv
+    inputs/prim_mubi28_dec.sv
+    inputs/prim_mubi32_sender.sv
+    inputs/prim_mubi32_sync.sv
+    inputs/prim_mubi32_dec.sv
+    inputs/ibex_alu.sv
+    inputs/ibex_branch_predict.sv
+    inputs/ibex_compressed_decoder.sv
+    inputs/ibex_controller.sv
+    inputs/ibex_cs_registers.sv
+    inputs/ibex_csr.sv
+    inputs/ibex_counter.sv
+    inputs/ibex_decoder.sv
+    inputs/ibex_ex_block.sv
+    inputs/ibex_fetch_fifo.sv
+    inputs/ibex_id_stage.sv
+    inputs/ibex_if_stage.sv
+    inputs/ibex_load_store_unit.sv
+    inputs/ibex_multdiv_fast.sv
+    inputs/ibex_multdiv_slow.sv
+    inputs/ibex_prefetch_buffer.sv
+    inputs/ibex_pmp.sv
+    inputs/ibex_wb_stage.sv
+    inputs/ibex_dummy_instr.sv
+    inputs/ibex_core.sv
+    inputs/prim_ram_1p_adv.sv
+    inputs/prim_ram_1p_scr.sv
+    inputs/ibex_register_file_ff.sv
+    inputs/ibex_register_file_fpga.sv
+    inputs/ibex_register_file_latch.sv
+    inputs/ibex_lockstep.sv
+    inputs/ibex_top.sv
+}
+# set svh_files [glob -directory inputs -type f *.svh]
+read_hdl -define $read_hdl_defines -sv $files
+
+
+# Prevent backslashes from being prepended to signal names...
+# this causes SAIF files to be invalid...needs to be before elaboration.
+
+set_attribute hdl_array_naming_style %s_%d
+set_attribute hdl_bus_wire_naming_style %s_%d
+set_attribute bit_blasted_port_style %s_%d /
+
+elaborate $design_name
+

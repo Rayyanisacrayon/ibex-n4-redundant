@@ -1,0 +1,9 @@
+name: pre_flowsetup
+
+outputs:
+  - setup.tcl
+  - power-strategy.tcl
+  - globalnetconnect.tcl
+  - floorplan.tcl
+  - pin-assignments.tcl
+  - setup-inst-gap.tcl
