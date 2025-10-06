@@ -1967,8 +1967,8 @@ module ibex_core import ibex_pkg::*; #(
       .select(redundancy_sel_if_reg)
     );
 
-    redundancy_mux #(.WIDTH(32)) if_busy_red_mux_reg (
-      .operand_a(if_busy_primary_reg_a),
+    redundancy_mux #(.WIDTH(1)) if_busy_red_mux_reg (
+      .operand_a(if_busy_reg_a),
       .operand_b(if_busy_reg_b),
       .result(if_busy),
       .select(redundancy_sel_if_reg)
