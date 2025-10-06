@@ -154,6 +154,23 @@ module ibex_top import ibex_pkg::*; #(
 
   // DFT bypass controls
   input logic                          scan_rst_ni
+
+  //REDUNDANCY SELECT SIGNALS
+  input logic redundancy_sel_if,
+  input logic redundancy_sel_id,
+  input logic redundancy_sel_ex,
+  input logic redundancy_sel_lsu,
+  input logic redundancy_sel_wb,
+  input logic redundancy_sel_rf,
+  input logic redundancy_sel_icache,
+  input logic redundancy_sel_csr,
+  input logic redundancy_sel_if_reg,
+  input logic redundancy_sel_id_reg,
+  input logic redundancy_sel_ex_reg,
+  input logic redundancy_sel_lsu_reg,
+  input logic redundancy_sel_wb_reg,
+  input logic redundancy_sel_rf_reg,
+  input logic redundancy_sel_icache_reg,
 );
 
   localparam bit          Lockstep              = SecureIbex;

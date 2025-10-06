@@ -5546,7 +5546,7 @@ module ibex_core import ibex_pkg::*; #(
   redundancy_mux #(.WIDTH(32)) crash_dump_mtval_red_mux_reg (
     .operand_a(crash_dump_mtval_reg_a),
     .operand_b(crash_dump_mtval_reg_b),
-    .result(crash_dump_o.mtval),
+    .result(crash_dump_mtval),
     .select(redundancy_sel_csr_reg)
   );
 

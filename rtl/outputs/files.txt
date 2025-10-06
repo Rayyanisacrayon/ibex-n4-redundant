@@ -27,6 +27,7 @@ ibex_register_file_fpga.sv
 ibex_register_file_latch.sv
 ibex_top.sv
 ibex_wb_stage.sv
+redundancy_mux.sv
 prim_and2.sv
 prim_assert_dummy_macros.svh
 prim_assert_sec_cm.svh

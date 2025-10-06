@@ -7,6 +7,7 @@
 
 # --- RTL Source Files (.sv) from explicit list ---
 ibex_rtl_flat/ibex_pkg.sv
+ibex_rtl_flat/redundancy_mux.sv
 ibex_rtl_flat/prim_pkg.sv
 ibex_rtl_flat/prim_ram_1p_pkg.sv
 ibex_rtl_flat/prim_cipher_pkg.sv
