@@ -139,6 +139,7 @@ module ibex_core import ibex_pkg::*; #(
   input logic redundancy_sel_wb_reg,
   input logic redundancy_sel_rf_reg,     
   input logic redundancy_sel_icache_reg, 
+  input logic redundancy_sel_csr_reg,
 
   // RISC-V Formal Interface
   // Does not comply with the coding standards of _i/_o suffixes, but follows

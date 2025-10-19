@@ -171,6 +171,7 @@ module ibex_top import ibex_pkg::*; #(
   input logic redundancy_sel_wb_reg,
   input logic redundancy_sel_rf_reg,
   input logic redundancy_sel_icache_reg,
+  input logic redundancy_sel_csr_reg,
 );
 
   localparam bit          Lockstep              = SecureIbex;
@@ -422,7 +423,8 @@ module ibex_top import ibex_pkg::*; #(
     .redundancy_sel_lsu_reg,
     .redundancy_sel_wb_reg,
     .redundancy_sel_rf_reg,     
-    .redundancy_sel_icache_reg, 
+    .redundancy_sel_icache_reg,
+    .redundancy_sel_csr_reg, 
 
 `ifdef RVFI
     .rvfi_valid,
@@ -473,8 +475,33 @@ module ibex_top import ibex_pkg::*; #(
   // Register file Instantiation //
   /////////////////////////////////
 
+  // Redundant register file signals
   logic rf_alert_major_internal;
+
+  logic rf_alert_major_internal_primary;
+  logic [RegFileDataWidth-1:0] rf_rdata_a_ecc_primary;
+  logic [RegFileDataWidth-1:0] rf_rdata_b_ecc_primary;
+
+  logic rf_alert_major_internal_r;
+  logic [RegFileDataWidth-1:0] rf_rdata_a_ecc_r;
+  logic [RegFileDataWidth-1:0] rf_rdata_b_ecc_r;
+  
+  logic rf_alert_major_internal_mux;
+  logic [RegFileDataWidth-1:0] rf_rdata_a_ecc_mux;
+  logic [RegFileDataWidth-1:0] rf_rdata_b_ecc_mux;
+
+  logic rf_alert_major_internal_reg_a;
+  logic [RegFileDataWidth-1:0] rf_rdata_a_ecc_reg_a;
+  logic [RegFileDataWidth-1:0] rf_rdata_b_ecc_reg_a;
+
+  logic rf_alert_major_internal_reg_b;
+  logic [RegFileDataWidth-1:0] rf_rdata_a_ecc_reg_b;
+  logic [RegFileDataWidth-1:0] rf_rdata_b_ecc_reg_b;
+
+
+
   if (RegFile == RegFileFF) begin : gen_regfile_ff
+    // Primary register file
     ibex_register_file_ff #(
       .RV32E            (RV32E),
       .DataWidth        (RegFileDataWidth),
@@ -483,7 +510,7 @@ module ibex_top import ibex_pkg::*; #(
       .WrenCheck        (RegFileWrenCheck),
       .RdataMuxCheck    (RegFileRdataMuxCheck),
       .WordZeroVal      (RegFileDataWidth'(prim_secded_pkg::SecdedInv3932ZeroWord))
-    ) register_file_i (
+    ) register_file_primary (
       .clk_i (clk),
       .rst_ni(rst_ni),
 
@@ -492,15 +519,43 @@ module ibex_top import ibex_pkg::*; #(
       .dummy_instr_wb_i(dummy_instr_wb),
 
       .raddr_a_i(rf_raddr_a),
-      .rdata_a_o(rf_rdata_a_ecc),
+      .rdata_a_o(rf_rdata_a_ecc_primary),
       .raddr_b_i(rf_raddr_b),
-      .rdata_b_o(rf_rdata_b_ecc),
+      .rdata_b_o(rf_rdata_b_ecc_primary),
       .waddr_a_i(rf_waddr_wb),
       .wdata_a_i(rf_wdata_wb_ecc),
       .we_a_i   (rf_we_wb),
-      .err_o    (rf_alert_major_internal)
+      .err_o    (rf_alert_major_internal_primary)
+    );
+
+    // Redundant register file
+    ibex_register_file_ff #(
+      .RV32E            (RV32E),
+      .DataWidth        (RegFileDataWidth),
+      .DummyInstructions(DummyInstructions),
+      // SEC_CM: DATA_REG_SW.GLITCH_DETECT
+      .WrenCheck        (RegFileWrenCheck),
+      .RdataMuxCheck    (RegFileRdataMuxCheck),
+      .WordZeroVal      (RegFileDataWidth'(prim_secded_pkg::SecdedInv3932ZeroWord))
+    ) register_file_redundant (
+      .clk_i (clk),
+      .rst_ni(rst_ni),
+
+      .test_en_i       (test_en_i),
+      .dummy_instr_id_i(dummy_instr_id),
+      .dummy_instr_wb_i(dummy_instr_wb),
+
+      .raddr_a_i(rf_raddr_a),
+      .rdata_a_o(rf_rdata_a_ecc_r),
+      .raddr_b_i(rf_raddr_b),
+      .rdata_b_o(rf_rdata_b_ecc_r),
+      .waddr_a_i(rf_waddr_wb),
+      .wdata_a_i(rf_wdata_wb_ecc),
+      .we_a_i   (rf_we_wb),
+      .err_o    (rf_alert_major_internal_r)
     );
   end else if (RegFile == RegFileFPGA) begin : gen_regfile_fpga
+    // Primary register file
     ibex_register_file_fpga #(
       .RV32E            (RV32E),
       .DataWidth        (RegFileDataWidth),
@@ -509,7 +564,7 @@ module ibex_top import ibex_pkg::*; #(
       .WrenCheck        (RegFileWrenCheck),
       .RdataMuxCheck    (RegFileRdataMuxCheck),
       .WordZeroVal      (RegFileDataWidth'(prim_secded_pkg::SecdedInv3932ZeroWord))
-    ) register_file_i (
+    ) register_file_primary (
       .clk_i (clk),
       .rst_ni(rst_ni),
 
@@ -518,15 +573,43 @@ module ibex_top import ibex_pkg::*; #(
       .dummy_instr_wb_i(dummy_instr_wb),
 
       .raddr_a_i(rf_raddr_a),
-      .rdata_a_o(rf_rdata_a_ecc),
+      .rdata_a_o(rf_rdata_a_ecc_primary),
       .raddr_b_i(rf_raddr_b),
-      .rdata_b_o(rf_rdata_b_ecc),
+      .rdata_b_o(rf_rdata_b_ecc_primary),
       .waddr_a_i(rf_waddr_wb),
       .wdata_a_i(rf_wdata_wb_ecc),
       .we_a_i   (rf_we_wb),
-      .err_o    (rf_alert_major_internal)
+      .err_o    (rf_alert_major_internal_primary)
+    );
+
+    // Redundant register file
+    ibex_register_file_fpga #(
+      .RV32E            (RV32E),
+      .DataWidth        (RegFileDataWidth),
+      .DummyInstructions(DummyInstructions),
+      // SEC_CM: DATA_REG_SW.GLITCH_DETECT
+      .WrenCheck        (RegFileWrenCheck),
+      .RdataMuxCheck    (RegFileRdataMuxCheck),
+      .WordZeroVal      (RegFileDataWidth'(prim_secded_pkg::SecdedInv3932ZeroWord))
+    ) register_file_redundant (
+      .clk_i (clk),
+      .rst_ni(rst_ni),
+
+      .test_en_i       (test_en_i),
+      .dummy_instr_id_i(dummy_instr_id),
+      .dummy_instr_wb_i(dummy_instr_wb),
+
+      .raddr_a_i(rf_raddr_a),
+      .rdata_a_o(rf_rdata_a_ecc_r),
+      .raddr_b_i(rf_raddr_b),
+      .rdata_b_o(rf_rdata_b_ecc_r),
+      .waddr_a_i(rf_waddr_wb),
+      .wdata_a_i(rf_wdata_wb_ecc),
+      .we_a_i   (rf_we_wb),
+      .err_o    (rf_alert_major_internal_r)
     );
   end else if (RegFile == RegFileLatch) begin : gen_regfile_latch
+    // Primary register file
     ibex_register_file_latch #(
       .RV32E            (RV32E),
       .DataWidth        (RegFileDataWidth),
@@ -535,7 +618,7 @@ module ibex_top import ibex_pkg::*; #(
       .WrenCheck        (RegFileWrenCheck),
       .RdataMuxCheck    (RegFileRdataMuxCheck),
       .WordZeroVal      (RegFileDataWidth'(prim_secded_pkg::SecdedInv3932ZeroWord))
-    ) register_file_i (
+    ) register_file_primary (
       .clk_i (clk),
       .rst_ni(rst_ni),
 
@@ -544,15 +627,95 @@ module ibex_top import ibex_pkg::*; #(
       .dummy_instr_wb_i(dummy_instr_wb),
 
       .raddr_a_i(rf_raddr_a),
-      .rdata_a_o(rf_rdata_a_ecc),
+      .rdata_a_o(rf_rdata_a_ecc_primary),
       .raddr_b_i(rf_raddr_b),
-      .rdata_b_o(rf_rdata_b_ecc),
+      .rdata_b_o(rf_rdata_b_ecc_primary),
       .waddr_a_i(rf_waddr_wb),
       .wdata_a_i(rf_wdata_wb_ecc),
       .we_a_i   (rf_we_wb),
-      .err_o    (rf_alert_major_internal)
+      .err_o    (rf_alert_major_internal_primary)
+    );
+
+    // Redundant register file
+    ibex_register_file_latch #(
+      .RV32E            (RV32E),
+      .DataWidth        (RegFileDataWidth),
+      .DummyInstructions(DummyInstructions),
+      // SEC_CM: DATA_REG_SW.GLITCH_DETECT
+      .WrenCheck        (RegFileWrenCheck),
+      .RdataMuxCheck    (RegFileRdataMuxCheck),
+      .WordZeroVal      (RegFileDataWidth'(prim_secded_pkg::SecdedInv3932ZeroWord))
+    ) register_file_redundant (
+      .clk_i (clk),
+      .rst_ni(rst_ni),
+
+      .test_en_i       (test_en_i),
+      .dummy_instr_id_i(dummy_instr_id),
+      .dummy_instr_wb_i(dummy_instr_wb),
+
+      .raddr_a_i(rf_raddr_a),
+      .rdata_a_o(rf_rdata_a_ecc_r),
+      .raddr_b_i(rf_raddr_b),
+      .rdata_b_o(rf_rdata_b_ecc_r),
+      .waddr_a_i(rf_waddr_wb),
+      .wdata_a_i(rf_wdata_wb_ecc),
+      .we_a_i   (rf_we_wb),
+      .err_o    (rf_alert_major_internal_r)
     );
   end
+
+  // Redundancy multiplexers for register file outputs - First stage
+  redundancy_mux #(.WIDTH(RegFileDataWidth)) rf_rdata_a_ecc_red_mux (
+    .operand_a(rf_rdata_a_ecc_primary),
+    .operand_b(rf_rdata_a_ecc_r),
+    .result(rf_rdata_a_ecc_mux),
+    .select(redundancy_sel_rf)
+  );
+
+  redundancy_mux #(.WIDTH(RegFileDataWidth)) rf_rdata_b_ecc_red_mux (
+    .operand_a(rf_rdata_b_ecc_primary),
+    .operand_b(rf_rdata_b_ecc_r),
+    .result(rf_rdata_b_ecc_mux),
+    .select(redundancy_sel_rf)
+  );
+
+  redundancy_mux #(.WIDTH(1)) rf_alert_major_internal_red_mux (
+    .operand_a(rf_alert_major_internal_primary),
+    .operand_b(rf_alert_major_internal_r),
+    .result(rf_alert_major_internal_mux),
+    .select(redundancy_sel_rf)
+  );
+
+  // Register stage assignments
+  assign rf_rdata_a_ecc_reg_a = rf_rdata_a_ecc_mux;
+  assign rf_rdata_b_ecc_reg_a = rf_rdata_b_ecc_mux;
+  assign rf_alert_major_internal_reg_a = rf_alert_major_internal_mux;
+
+  assign rf_rdata_a_ecc_reg_b = rf_rdata_a_ecc_mux;
+  assign rf_rdata_b_ecc_reg_b = rf_rdata_b_ecc_mux;
+  assign rf_alert_major_internal_reg_b = rf_alert_major_internal_mux;
+
+  // Final output multiplexers - Second stage
+  redundancy_mux #(.WIDTH(RegFileDataWidth)) rf_rdata_a_ecc_final_mux (
+    .operand_a(rf_rdata_a_ecc_reg_a),
+    .operand_b(rf_rdata_a_ecc_reg_b),
+    .result(rf_rdata_a_ecc),
+    .select(redundancy_sel_rf_reg)
+  );
+
+  redundancy_mux #(.WIDTH(RegFileDataWidth)) rf_rdata_b_ecc_final_mux (
+    .operand_a(rf_rdata_b_ecc_reg_a),
+    .operand_b(rf_rdata_b_ecc_reg_b),
+    .result(rf_rdata_b_ecc),
+    .select(redundancy_sel_rf_reg)
+  );
+
+  redundancy_mux #(.WIDTH(1)) rf_alert_major_internal_final_mux (
+    .operand_a(rf_alert_major_internal_reg_a),
+    .operand_b(rf_alert_major_internal_reg_b),
+    .result(rf_alert_major_internal),
+    .select(redundancy_sel_rf_reg)
+  );
 
   ///////////////////////////////
   // Scrambling Infrastructure //
@@ -614,6 +777,37 @@ module ibex_top import ibex_pkg::*; #(
   logic [IC_NUM_WAYS-1:0] icache_tag_alert;
   logic [IC_NUM_WAYS-1:0] icache_data_alert;
 
+  // Redundant icache signals
+  logic [IC_NUM_WAYS-1:0] icache_tag_alert_primary;
+  logic [IC_NUM_WAYS-1:0] icache_data_alert_primary;
+  logic [TagSizeECC-1:0]       ic_tag_rdata_primary [IC_NUM_WAYS];
+  logic [LineSizeECC-1:0]      ic_data_rdata_primary [IC_NUM_WAYS];
+
+  logic [IC_NUM_WAYS-1:0] icache_tag_alert_r;
+  logic [IC_NUM_WAYS-1:0] icache_data_alert_r;
+
+  logic [LineSizeECC-1:0] ic_data_rdata_r [IC_NUM_WAYS];
+  logic [TagSizeECC-1:0]  ic_tag_rdata_r [IC_NUM_WAYS];
+
+  //muxed output
+  logic [IC_NUM_WAYS-1:0] icache_tag_alert_mux;
+  logic [IC_NUM_WAYS-1:0] icache_data_alert_mux;
+  logic [TagSizeECC-1:0]       ic_tag_rdata_mux [IC_NUM_WAYS];
+  logic [LineSizeECC-1:0]      ic_data_rdata_mux [IC_NUM_WAYS];
+
+  
+  logic [IC_NUM_WAYS-1:0] icache_tag_alert_reg_a;
+  logic [IC_NUM_WAYS-1:0] icache_data_alert_reg_a;
+  logic [TagSizeECC-1:0]       ic_tag_rdata_reg_a [IC_NUM_WAYS];
+  logic [LineSizeECC-1:0]      ic_data_rdata_reg_a [IC_NUM_WAYS];
+
+  
+  logic [IC_NUM_WAYS-1:0] icache_tag_alert_reg_b;
+  logic [IC_NUM_WAYS-1:0] icache_data_alert_reg_b;
+  logic [TagSizeECC-1:0]       ic_tag_rdata_reg_b [IC_NUM_WAYS];
+  logic [LineSizeECC-1:0]      ic_data_rdata_reg_b [IC_NUM_WAYS];
+
+
   if (ICache) begin : gen_rams
 
     for (genvar way = 0; way < IC_NUM_WAYS; way++) begin : gen_rams_inner
@@ -621,7 +815,7 @@ module ibex_top import ibex_pkg::*; #(
       if (ICacheScramble) begin : gen_scramble_rams
 
         // SEC_CM: ICACHE.MEM.SCRAMBLE
-        // Tag RAM instantiation
+        // Primary Tag RAM instantiation
         prim_ram_1p_scr #(
           .Width              (TagSizeECC),
           .Depth              (IC_NUM_LINES),
@@ -629,7 +823,7 @@ module ibex_top import ibex_pkg::*; #(
           .EnableParity       (0),
           .NumPrinceRoundsHalf(ICacheScrNumPrinceRoundsHalf),
           .NumAddrScrRounds   (NumAddrScrRounds)
-        ) tag_bank (
+        ) tag_bank_primary (
           .clk_i,
           .rst_ni,
 
@@ -646,7 +840,7 @@ module ibex_top import ibex_pkg::*; #(
           .wmask_i          ({TagSizeECC{1'b1}}),
           .intg_error_i     (1'b0),
 
-          .rdata_o          (ic_tag_rdata[way]),
+          .rdata_o          (ic_tag_rdata_primary[way]),
           .rvalid_o         (),
           .raddr_o          (),
           .rerror_o         (),
@@ -654,10 +848,46 @@ module ibex_top import ibex_pkg::*; #(
           .wr_collision_o   (),
           .write_pending_o  (),
 
-          .alert_o          (icache_tag_alert[way])
+          .alert_o          (icache_tag_alert_primary[way])
         );
 
-        // Data RAM instantiation
+        // Redundant Tag RAM instantiation
+        prim_ram_1p_scr #(
+          .Width              (TagSizeECC),
+          .Depth              (IC_NUM_LINES),
+          .DataBitsPerMask    (TagSizeECC),
+          .EnableParity       (0),
+          .NumPrinceRoundsHalf(ICacheScrNumPrinceRoundsHalf),
+          .NumAddrScrRounds   (NumAddrScrRounds)
+        ) tag_bank_redundant (
+          .clk_i,
+          .rst_ni,
+
+          .key_valid_i      (scramble_key_valid_q),
+          .key_i            (scramble_key_q),
+          .nonce_i          (scramble_nonce_q),
+
+          .req_i            (ic_tag_req_r[way]),
+
+          .gnt_o            (),
+          .write_i          (ic_tag_write),
+          .addr_i           (ic_tag_addr),
+          .wdata_i          (ic_tag_wdata),
+          .wmask_i          ({TagSizeECC{1'b1}}),
+          .intg_error_i     (1'b0),
+
+          .rdata_o          (ic_tag_rdata_r[way]),
+          .rvalid_o         (),
+          .raddr_o          (),
+          .rerror_o         (),
+          .cfg_i            (ram_cfg_i),
+          .wr_collision_o   (),
+          .write_pending_o  (),
+
+          .alert_o          (icache_tag_alert_r[way])  
+        );
+
+        // Primary Data RAM instantiation
         prim_ram_1p_scr #(
           .Width              (LineSizeECC),
           .Depth              (IC_NUM_LINES),
@@ -666,7 +896,7 @@ module ibex_top import ibex_pkg::*; #(
           .EnableParity       (0),
           .NumPrinceRoundsHalf(ICacheScrNumPrinceRoundsHalf),
           .NumAddrScrRounds   (NumAddrScrRounds)
-        ) data_bank (
+        ) data_bank_primary (
           .clk_i,
           .rst_ni,
 
@@ -683,7 +913,7 @@ module ibex_top import ibex_pkg::*; #(
           .wmask_i          ({LineSizeECC{1'b1}}),
           .intg_error_i     (1'b0),
 
-          .rdata_o          (ic_data_rdata[way]),
+          .rdata_o          (ic_data_rdata_primary[way]),
           .rvalid_o         (),
           .raddr_o          (),
           .rerror_o         (),
@@ -691,7 +921,44 @@ module ibex_top import ibex_pkg::*; #(
           .wr_collision_o   (),
           .write_pending_o  (),
 
-          .alert_o          (icache_data_alert[way])
+          .alert_o          (icache_data_alert_primary[way])
+        );
+
+        // Redundant Data RAM instantiation
+        prim_ram_1p_scr #(
+          .Width              (LineSizeECC),
+          .Depth              (IC_NUM_LINES),
+          .DataBitsPerMask    (LineSizeECC),
+          .ReplicateKeyStream (1),
+          .EnableParity       (0),
+          .NumPrinceRoundsHalf(ICacheScrNumPrinceRoundsHalf),
+          .NumAddrScrRounds   (NumAddrScrRounds)
+        ) data_bank_redundant (
+          .clk_i,
+          .rst_ni,
+
+          .key_valid_i      (scramble_key_valid_q),
+          .key_i            (scramble_key_q),
+          .nonce_i          (scramble_nonce_q),
+
+          .req_i            (ic_data_req[way]),
+
+          .gnt_o            (),
+          .write_i          (ic_data_write),
+          .addr_i           (ic_data_addr),
+          .wdata_i          (ic_data_wdata),
+          .wmask_i          ({LineSizeECC{1'b1}}),
+          .intg_error_i     (1'b0),
+
+          .rdata_o          (ic_data_rdata_r[way]),
+          .rvalid_o         (),
+          .raddr_o          (),
+          .rerror_o         (),
+          .cfg_i            (ram_cfg_i),
+          .wr_collision_o   (),
+          .write_pending_o  (),
+
+          .alert_o          (icache_data_alert_r[way])  
         );
 
         `ifdef INC_ASSERT
@@ -713,25 +980,25 @@ module ibex_top import ibex_pkg::*; #(
           `ASSERT(ScrambleKeyAppliedAtTagBank_A,
                   scramble_key_valid_i
                   |-> ##[0:10]
-                  tag_bank.key_valid_i && (tag_bank.key_i == sampled_scramble_key),
+                  tag_bank_primary.key_valid_i && (tag_bank_primary.key_i == sampled_scramble_key),
                   clk_i, !rst_ni
           )
           `ASSERT(ScrambleKeyAppliedAtDataBank_A,
                   scramble_key_valid_i
                   |-> ##[0:10]
-                  data_bank.key_valid_i && (data_bank.key_i == sampled_scramble_key),
+                  data_bank_primary.key_valid_i && (data_bank_primary.key_i == sampled_scramble_key),
                   clk_i, !rst_ni
           )
         `endif
 
       end else begin : gen_noscramble_rams
 
-        // Tag RAM instantiation
+        // Primary Tag RAM instantiation
         prim_ram_1p #(
           .Width            (TagSizeECC),
           .Depth            (IC_NUM_LINES),
           .DataBitsPerMask  (TagSizeECC)
-        ) tag_bank (
+        ) tag_bank_primary (
           .clk_i,
 
           .req_i       (ic_tag_req[way]),
@@ -741,16 +1008,35 @@ module ibex_top import ibex_pkg::*; #(
           .wdata_i     (ic_tag_wdata),
           .wmask_i     ({TagSizeECC{1'b1}}),
 
-          .rdata_o     (ic_tag_rdata[way]),
+          .rdata_o     (ic_tag_rdata_primary[way]),
           .cfg_i       (ram_cfg_i)
         );
 
-        // Data RAM instantiation
+        // Redundant Tag RAM instantiation
+        prim_ram_1p #(
+          .Width            (TagSizeECC),
+          .Depth            (IC_NUM_LINES),
+          .DataBitsPerMask  (TagSizeECC)
+        ) tag_bank_redundant (
+          .clk_i,
+
+          .req_i       (ic_tag_req[way]),
+
+          .write_i     (ic_tag_write),
+          .addr_i      (ic_tag_addr),
+          .wdata_i     (ic_tag_wdata),
+          .wmask_i     ({TagSizeECC{1'b1}}),
+
+          .rdata_o     (ic_tag_rdata_r[way]),
+          .cfg_i       (ram_cfg_i)
+        );
+
+        // Primary Data RAM instantiation
         prim_ram_1p #(
           .Width              (LineSizeECC),
           .Depth              (IC_NUM_LINES),
           .DataBitsPerMask    (LineSizeECC)
-        ) data_bank (
+        ) data_bank_primary (
           .clk_i,
 
           .req_i       (ic_data_req[way]),
@@ -760,13 +1046,107 @@ module ibex_top import ibex_pkg::*; #(
           .wdata_i     (ic_data_wdata),
           .wmask_i     ({LineSizeECC{1'b1}}),
 
-          .rdata_o     (ic_data_rdata[way]),
+          .rdata_o     (ic_data_rdata_primary[way]),
           .cfg_i       (ram_cfg_i)
         );
 
-        assign icache_tag_alert  = '{default:'b0};
-        assign icache_data_alert = '{default:'b0};
+        // Redundant Data RAM instantiation
+        prim_ram_1p #(
+          .Width              (LineSizeECC),
+          .Depth              (IC_NUM_LINES),
+          .DataBitsPerMask    (LineSizeECC)
+        ) data_bank_redundant (
+          .clk_i,
+
+          .req_i       (ic_data_req[way]),
+
+          .write_i     (ic_data_write),
+          .addr_i      (ic_data_addr),
+          .wdata_i     (ic_data_wdata),
+          .wmask_i     ({LineSizeECC{1'b1}}),
+
+          .rdata_o     (ic_data_rdata_r[way]),
+          .cfg_i       (ram_cfg_i)
+        );
+
+
+        assign icache_tag_alert_primary  = '{default:'b0};
+        assign icache_data_alert_primary = '{default:'b0};
+        assign icache_tag_alert_r  = '{default:'b0};
+        assign icache_data_alert_r = '{default:'b0};
       end
+    end
+
+    // Redundancy multiplexers for icache outputs
+    for (genvar way = 0; way < IC_NUM_WAYS; way++) begin : gen_icache_mux
+      redundancy_mux #(.WIDTH(TagSizeECC)) ic_tag_rdata_red_mux (
+        .operand_a(ic_tag_rdata_primary[way]),
+        .operand_b(ic_tag_rdata_r[way]),
+        .result(ic_tag_rdata_mux[way]),
+        .select(redundancy_sel_icache)
+      );
+
+      redundancy_mux #(.WIDTH(LineSizeECC)) ic_data_rdata_red_mux (
+        .operand_a(ic_data_rdata_primary[way]),
+        .operand_b(ic_data_rdata_r[way]),
+        .result(ic_data_rdata_mux[way]),
+        .select(redundancy_sel_icache)
+      );
+
+      redundancy_mux #(.WIDTH(1)) icache_tag_alert_red_mux (
+        .operand_a(icache_tag_alert_primary[way]),
+        .operand_b(icache_tag_alert_r[way]),
+        .result(icache_tag_alert_mux[way]),
+        .select(redundancy_sel_icache)
+      );
+
+      redundancy_mux #(.WIDTH(1)) icache_data_alert_red_mux (
+        .operand_a(icache_data_alert_primary[way]),
+        .operand_b(icache_data_alert_r[way]),
+        .result(icache_data_alert_mux[way]),
+        .select(redundancy_sel_icache)
+      );
+    end
+
+    assign ic_tag_rdata_reg_a = ic_tag_rdata_mux;
+    assign ic_data_rdata_reg_a = ic_data_rdata_mux;
+    assign icache_tag_alert_reg_a = icache_tag_alert_mux;
+    assign icache_data_alert_reg_a = icache_data_alert_mux;
+    
+    assign ic_tag_rdata_reg_b = ic_tag_rdata_mux;
+    assign ic_data_rdata_reg_b = ic_data_rdata_mux;
+    assign icache_tag_alert_reg_b = icache_tag_alert_mux;
+    assign icache_data_alert_reg_b = icache_data_alert_mux;
+
+    // Final output assignments
+    for (genvar way = 0; way < IC_NUM_WAYS; way++) begin : gen_icache_mux
+      redundancy_mux #(.WIDTH(TagSizeECC)) ic_tag_rdata_red_mux (
+        .operand_a(ic_tag_rdata_reg_a[way]),
+        .operand_b(ic_tag_rdata_reg_b[way]),
+        .result(ic_tag_rdata[way]),
+        .select(redundancy_sel_icache_reg)
+      );
+
+      redundancy_mux #(.WIDTH(LineSizeECC)) ic_data_rdata_red_mux (
+        .operand_a(ic_data_rdata_reg_a[way]),
+        .operand_b(ic_data_rdata_reg_b[way]),
+        .result(ic_data_rdata[way]),
+        .select(redundancy_sel_icache_reg)
+      );
+
+      redundancy_mux #(.WIDTH(1)) icache_tag_alert_red_mux (
+        .operand_a(icache_tag_alert_reg_a[way]),
+        .operand_b(icache_tag_alert_reg_b[way]),
+        .result(icache_tag_alert[way]),
+        .select(redundancy_sel_icache_reg)
+      );
+
+      redundancy_mux #(.WIDTH(1)) icache_data_alert_red_mux (
+        .operand_a(icache_data_alert_reg_a[way]),
+        .operand_b(icache_data_alert_reg_b[way]),
+        .result(icache_data_alert[way]),
+        .select(redundancy_sel_icache_reg)
+      );
     end
 
   end else begin : gen_norams
